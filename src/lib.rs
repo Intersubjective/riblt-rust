@@ -310,7 +310,7 @@ mod tests {
     fn zero() -> TestSymbol {
       return new_test_symbol(0);
     }
-    
+
     fn xor(&self, other: &TestSymbol) -> TestSymbol {
       return core::array::from_fn(|i| self[i] ^ other[i]);
     }
