@@ -1,9 +1,3 @@
-//  TODO
-//
-//  Tests:
-//    - Example
-//
-
 //  NOTE
 //  - Investigate static/dynamic dispatch in regard to
 //    the performance when using traits like Symbol.
@@ -296,7 +290,6 @@ mod tests {
   use super::*;
   use std::collections::BTreeSet;
   use std::hash::{SipHasher, Hasher};
-  // use crypto::sha2::Sha256;
 
   const TEST_SYMBOL_SIZE: usize = 64;
 
@@ -324,11 +317,11 @@ mod tests {
 
   #[test]
   fn encode_and_decode() {
-    let mut enc: Encoder<TestSymbol> = Encoder::new();
-    let mut dec: Decoder<TestSymbol> = Decoder::new();
+    let mut enc = Encoder::<TestSymbol>::new();
+    let mut dec = Decoder::<TestSymbol>::new();
 
-    let mut local  : BTreeSet<u64> = BTreeSet::new();
-    let mut remote : BTreeSet<u64> = BTreeSet::new();
+    let mut local  = BTreeSet::<u64>::new();
+    let mut remote = BTreeSet::<u64>::new();
 
     let nlocal  = 5000;  // 50000;
     let nremote = 5000;  // 50000;
@@ -381,8 +374,57 @@ mod tests {
     println!("{} codewords until fully decoded", ncw);
   }
 
+  type TestItem = u64;
+
+  impl Symbol for TestItem {
+    fn zero() -> TestItem {
+      return 0;
+    }
+
+    fn xor(&self, other: &TestItem) -> TestItem {
+      return self ^ other;
+    }
+
+    fn hash(&self) -> u64 {
+      let mut hasher = SipHasher::new_with_keys(123, 456);
+      hasher.write_u64(*self);
+      return hasher.finish();
+    }
+  }
+
   #[test]
   fn example() {
-    todo!();
+    let alice : [TestItem; 10] = [1, 2, 3, 4, 5, 6, 7, 8,  9, 10];
+    let bob   : [TestItem; 10] = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+    let mut enc = Encoder::<TestItem>::new();
+    for x in alice {
+      enc.add_symbol(&x);
+    }
+
+    let mut dec = Decoder::<TestItem>::new();
+    for x in bob {
+      dec.add_symbol(&x);
+    }
+
+    let mut cost = 0;
+
+    loop {
+      let s = enc.produce_next_coded_symbol();
+      cost += 1;
+      dec.add_coded_symbol(&s);
+      assert!(!dec.try_decode().is_err());
+      if dec.decoded() {
+        break;
+      }
+    }
+
+    //  2 is exclusive to Alice
+    assert_eq!(dec.remote.symbols[0].symbol, 2);
+
+    //  11 is exclusive to Bob
+    assert_eq!(dec.local.symbols[0].symbol, 11);
+
+    assert_eq!(cost, 2);
   }
 }
