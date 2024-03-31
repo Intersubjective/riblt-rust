@@ -203,6 +203,8 @@ impl<T: Symbol + Copy> Decoder<T> {
     };
   }
 
+  //  FIXME
+  //  No test coverage for this method.
   pub fn reset(&mut self) {
     self.coded.clear();
     self.local.reset();
@@ -307,12 +309,16 @@ impl<T: Symbol + Copy> Decoder<T> {
     return self.num_decoded == (self.coded.len() as i64);
   }
 
+  //  FIXME
+  //  No test coverage for this method.
   pub fn get_remote_symbols(&self) -> Vec<HashedSymbol<T>> {
     return self.remote.symbols.clone();
   }
 
+  //  FIXME
+  //  No test coverage for this method.
   pub fn get_local_symbols(&self) -> Vec<HashedSymbol<T>> {
-    return self.remote.symbols.clone();
+    return self.local.symbols.clone();
   }
 }
 
