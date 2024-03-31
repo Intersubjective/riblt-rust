@@ -6,6 +6,9 @@
 
 use std::vec::Vec;
 
+pub mod sketch;
+pub mod testing;
+
 pub trait Symbol {
   fn zero() -> Self;
   fn xor(&self, other: &Self) -> Self where Self: Sized;
@@ -13,7 +16,7 @@ pub trait Symbol {
 }
 
 #[derive(Clone, Copy)]
-enum Direction {
+pub enum Direction {
   ADD    = 1,
   REMOVE = -1,
 }
@@ -21,6 +24,8 @@ enum Direction {
 #[derive(Clone, Copy)]
 pub enum Error {
   InvalidDegree = 1,
+  InvalidSize   = 2,
+  DecodeFailed  = 3,
 }
 
 
@@ -32,41 +37,41 @@ pub struct SymbolMapping {
 
 #[derive(Clone, Copy)]
 pub struct RandomMapping {
-  prng:     u64,
-  last_idx: i64,
+  pub prng:     u64,
+  pub last_idx: i64,
 }
 
 #[derive(Clone, Copy)]
 pub struct HashedSymbol<T: Symbol + Copy> {
-  symbol: T,
-  hash:   u64,
+  pub symbol: T,
+  pub hash:   u64,
 }
 
 #[derive(Clone, Copy)]
 pub struct CodedSymbol<T: Symbol + Copy> {
-  symbol: T,
-  hash:   u64,
-  count:  i64,
+  pub symbol: T,
+  pub hash:   u64,
+  pub count:  i64,
 }
 
 pub struct Encoder<T: Symbol + Copy> {
-  symbols:  Vec<HashedSymbol<T>>,
-  mappings: Vec<RandomMapping>,
-  queue:    Vec<SymbolMapping>,
-  next_idx: i64,
+  pub symbols:  Vec<HashedSymbol<T>>,
+      mappings: Vec<RandomMapping>,
+      queue:    Vec<SymbolMapping>,
+      next_idx: i64,
 }
 
 pub struct Decoder<T: Symbol + Copy> {
-  coded:       Vec<CodedSymbol<T>>,
-  local:       Encoder<T>,
-  window:      Encoder<T>,
-  remote:      Encoder<T>,
-  decodable:   Vec<i64>,
-  num_decoded: i64,
+      coded:       Vec<CodedSymbol<T>>,
+  pub local:       Encoder<T>,
+  pub remote:      Encoder<T>,
+      window:      Encoder<T>,
+      decodable:   Vec<i64>,
+      num_decoded: i64,
 }
 
 impl RandomMapping {
-  fn next_index(&mut self) -> i64 {
+  pub fn next_index(&mut self) -> i64 {
     let r = self.prng.wrapping_mul(0xda942042e4dd58b5);
     self.prng = r;
     self.last_idx +=
@@ -78,7 +83,7 @@ impl RandomMapping {
 }
 
 impl<T: Symbol + Copy> CodedSymbol<T> {
-  fn apply(&mut self, sym: &HashedSymbol<T>, direction: Direction) {
+  pub fn apply(&mut self, sym: &HashedSymbol<T>, direction: Direction) {
     self.symbol  = self.symbol.xor(&sym.symbol);
     self.hash   ^= sym.hash;
     self.count  += direction as i64;
@@ -93,6 +98,16 @@ impl<T: Symbol + Copy> Encoder<T> {
       queue:    Vec::<SymbolMapping>::new(),
       next_idx: 0,
     };
+  }
+
+
+  //  FIXME
+  //  No test coverage for this method.
+  pub fn reset(&mut self) {
+    self.symbols.clear();
+    self.mappings.clear();
+    self.queue.clear();
+    self.next_idx = 0;
   }
 
   pub fn add_hashed_symbol_with_mapping(&mut self, sym: &HashedSymbol<T>, mapp: &RandomMapping) {
@@ -131,7 +146,7 @@ impl<T: Symbol + Copy> Encoder<T> {
     });
   }
 
-  fn apply_window(&mut self, sym: &CodedSymbol<T>, direction: Direction) -> CodedSymbol<T> {
+  pub fn apply_window(&mut self, sym: &CodedSymbol<T>, direction: Direction) -> CodedSymbol<T> {
     let mut next_sym = *sym;
 
     if self.queue.is_empty() {
@@ -181,13 +196,22 @@ impl<T: Symbol + Copy> Decoder<T> {
     return Decoder::<T> {
       coded:       Vec::<CodedSymbol<T>>::new(),
       local:       Encoder::<T>::new(),
-      window:      Encoder::<T>::new(),
       remote:      Encoder::<T>::new(),
+      window:      Encoder::<T>::new(),
       decodable:   Vec::<i64>::new(),
       num_decoded: 0,
     };
   }
-  
+
+  pub fn reset(&mut self) {
+    self.coded.clear();
+    self.local.reset();
+    self.remote.reset();
+    self.window.reset();
+    self.decodable.clear();
+    self.num_decoded = 0;
+  }
+
   pub fn add_symbol(&mut self, sym: &T) {
     self.window.add_hashed_symbol(&HashedSymbol::<T> {
       symbol: *sym,
@@ -282,38 +306,21 @@ impl<T: Symbol + Copy> Decoder<T> {
   pub fn decoded(&self) -> bool {
     return self.num_decoded == (self.coded.len() as i64);
   }
+
+  pub fn get_remote_symbols(&self) -> Vec<HashedSymbol<T>> {
+    return self.remote.symbols.clone();
+  }
+
+  pub fn get_local_symbols(&self) -> Vec<HashedSymbol<T>> {
+    return self.remote.symbols.clone();
+  }
 }
 
 #[cfg(test)]
-#[allow(deprecated)] // SipHasher
 mod tests {
   use super::*;
+  use super::testing::*;
   use std::collections::BTreeSet;
-  use std::hash::{SipHasher, Hasher};
-
-  const TEST_SYMBOL_SIZE: usize = 64;
-
-  type TestSymbol = [u8; TEST_SYMBOL_SIZE];
-
-  fn new_test_symbol(x: u64) -> TestSymbol {
-    return core::array::from_fn::<u8, TEST_SYMBOL_SIZE, _>(|i| x.checked_shr(8 * i as u32).unwrap_or(0) as u8);
-  }
-
-  impl Symbol for TestSymbol {
-    fn zero() -> TestSymbol {
-      return new_test_symbol(0);
-    }
-
-    fn xor(&self, other: &TestSymbol) -> TestSymbol {
-      return core::array::from_fn(|i| self[i] ^ other[i]);
-    }
-
-    fn hash(&self) -> u64 {
-      let mut hasher = SipHasher::new_with_keys(567, 890);
-      hasher.write(self);
-      return hasher.finish();
-    }
-  }
 
   #[test]
   fn encode_and_decode() {
@@ -374,35 +381,17 @@ mod tests {
     println!("{} codewords until fully decoded", ncw);
   }
 
-  type TestItem = u64;
-
-  impl Symbol for TestItem {
-    fn zero() -> TestItem {
-      return 0;
-    }
-
-    fn xor(&self, other: &TestItem) -> TestItem {
-      return self ^ other;
-    }
-
-    fn hash(&self) -> u64 {
-      let mut hasher = SipHasher::new_with_keys(123, 456);
-      hasher.write_u64(*self);
-      return hasher.finish();
-    }
-  }
-
   #[test]
   fn example() {
-    let alice : [TestItem; 10] = [1, 2, 3, 4, 5, 6, 7, 8,  9, 10];
-    let bob   : [TestItem; 10] = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    let alice : [TestU64; 10] = [1, 2, 3, 4, 5, 6, 7, 8,  9, 10];
+    let bob   : [TestU64; 10] = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-    let mut enc = Encoder::<TestItem>::new();
+    let mut enc = Encoder::<TestU64>::new();
     for x in alice {
       enc.add_symbol(&x);
     }
 
-    let mut dec = Decoder::<TestItem>::new();
+    let mut dec = Decoder::<TestU64>::new();
     for x in bob {
       dec.add_symbol(&x);
     }
