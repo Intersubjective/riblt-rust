@@ -45,7 +45,7 @@ impl Symbol for MyU64 {
 - `enc.add_symbol(symbol: &T)` - Add a new symbol to the Encoder.
 - `enc.produce_next_coded_symbol() -> CodedSymbol<T>` - Produce the next coded symbol that can be decoded by the Decoder. 
 
-Example usage
+#### Example usage
 ```rs
 use riblt::*;
 
@@ -76,7 +76,7 @@ Remote and local symbols can be accessed directly via Decoder properties:
 - `dec.remote.symbols`,
 - `dec.local.symbols`.
 
-Example usage
+#### Example usage
 ```rs
 use riblt::*;
 
