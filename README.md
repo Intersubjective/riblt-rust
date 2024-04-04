@@ -98,4 +98,4 @@ fn foo() {
 }
 ```
 
-For the complete example see test `example` in `src/lib.rs`.
+For the complete example see test `example` in `src/tests.rs`.

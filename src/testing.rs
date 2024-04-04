@@ -1,4 +1,4 @@
-use super::Symbol;
+use super::*;
 
 #[allow(deprecated)]
 use std::hash::{SipHasher, Hasher};
@@ -46,3 +46,19 @@ impl Symbol for TestU64 {
     return hasher.finish();
   }
 } 
+
+#[derive(Copy, Clone)]
+pub struct TestHasher;
+
+impl byte_array::Hasher for TestHasher {
+  fn new() -> Self {
+    return TestHasher {};
+  }
+
+  #[allow(deprecated)]
+  fn hash(&self, bytes: &[u8]) -> u64 {
+    let mut h = SipHasher::new_with_keys(123, 456);
+    h.write(bytes);
+    return h.finish();
+  }
+}
