@@ -18,7 +18,7 @@ impl<T: Symbol + Copy> Sketch<T> {
   pub fn new(size: usize) -> Sketch<T> {
     return Sketch::<T> {
       v: vec![CodedSymbol::<T> {
-        symbol: T::zero(),
+        symbol: T::zero(0),
         hash:   0,
         count:  0,
       }; size]
@@ -82,7 +82,7 @@ impl<T: Symbol + Copy> Sketch<T> {
   }
 
   pub fn decode(&mut self) -> Result<SketchDecodeResult<T>, Error> {
-    let mut dec = Decoder::<T>::new();
+    let mut dec = Decoder::<T>::new(0);
     for i in 0..self.v.len() {
       dec.add_coded_symbol(&self.v[i]);
     }

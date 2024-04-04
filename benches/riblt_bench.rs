@@ -18,7 +18,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     black_box(mapp.next_index())
   }));
 
-  let mut enc  = Encoder::<TestSymbol>::new();
+  let mut enc  = Encoder::<TestSymbol>::new(0);
 
   let data : [TestSymbol; N] = core::array::from_fn(|i| new_test_symbol(i as u64));
 

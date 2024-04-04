@@ -13,9 +13,12 @@ pub mod testing;
 #[cfg(test)]
 pub mod tests;
 
+//  NOTE
+//  Symbol size value is required for the simpler cross-language API implementation.
+
 pub trait Symbol {
-  fn zero() -> Self;
-  fn xor(&self, other: &Self) -> Self where Self: Sized;
+  fn zero(size: usize) -> Self;
+  fn xor(&self, other: &Self) -> Self;
   fn hash(&self) -> u64;
 }
 
@@ -45,26 +48,27 @@ pub struct RandomMapping {
 }
 
 #[derive(Clone, Copy)]
-pub struct HashedSymbol<T: Symbol + Copy> {
+pub struct HashedSymbol<T: Symbol + Clone> {
   pub symbol: T,
   pub hash:   u64,
 }
 
 #[derive(Clone, Copy)]
-pub struct CodedSymbol<T: Symbol + Copy> {
+pub struct CodedSymbol<T: Symbol + Clone> {
   pub symbol: T,
   pub hash:   u64,
   pub count:  i64,
 }
 
-pub struct Encoder<T: Symbol + Copy> {
-  pub symbols:  Vec<HashedSymbol<T>>,
-      mappings: Vec<RandomMapping>,
-      queue:    Vec<SymbolMapping>,
-      next_idx: i64,
+pub struct Encoder<T: Symbol + Clone> {
+  pub symbols:     Vec<HashedSymbol<T>>,
+      mappings:    Vec<RandomMapping>,
+      queue:       Vec<SymbolMapping>,
+      next_idx:    i64,
+      symbol_size: usize,
 }
 
-pub struct Decoder<T: Symbol + Copy> {
+pub struct Decoder<T: Symbol + Clone> {
       coded:       Vec<CodedSymbol<T>>,
   pub local:       Encoder<T>,
   pub remote:      Encoder<T>,
@@ -85,7 +89,7 @@ impl RandomMapping {
   }
 }
 
-impl<T: Symbol + Copy> CodedSymbol<T> {
+impl<T: Symbol + Clone> CodedSymbol<T> {
   pub fn apply(&mut self, sym: &HashedSymbol<T>, direction: Direction) {
     self.symbol  = self.symbol.xor(&sym.symbol);
     self.hash   ^= sym.hash;
@@ -93,16 +97,16 @@ impl<T: Symbol + Copy> CodedSymbol<T> {
   }
 }
 
-impl<T: Symbol + Copy> Encoder<T> {
-  pub fn new() -> Self {
+impl<T: Symbol + Clone> Encoder<T> {
+  pub fn new(symbol_size: usize) -> Self {
     return Encoder::<T> {
-      symbols:  Vec::<HashedSymbol<T>>::new(),
-      mappings: Vec::<RandomMapping>::new(),
-      queue:    Vec::<SymbolMapping>::new(),
-      next_idx: 0,
+      symbols     : Vec::<HashedSymbol<T>>::new(),
+      mappings    : Vec::<RandomMapping>::new(),
+      queue       : Vec::<SymbolMapping>::new(),
+      next_idx    : 0,
+      symbol_size,
     };
   }
-
 
   //  FIXME
   //  No test coverage for this method.
@@ -114,7 +118,7 @@ impl<T: Symbol + Copy> Encoder<T> {
   }
 
   pub fn add_hashed_symbol_with_mapping(&mut self, sym: &HashedSymbol<T>, mapp: &RandomMapping) {
-    self.symbols.push(*sym);
+    self.symbols.push(sym.clone());
     self.mappings.push(*mapp);
 
     self.queue.push(SymbolMapping {
@@ -144,13 +148,13 @@ impl<T: Symbol + Copy> Encoder<T> {
   
   pub fn add_symbol(&mut self, sym: &T) {
     self.add_hashed_symbol(&HashedSymbol::<T> {
-      symbol: *sym,
+      symbol: sym.clone(),
       hash:   sym.hash(),
     });
   }
 
   pub fn apply_window(&mut self, sym: &CodedSymbol<T>, direction: Direction) -> CodedSymbol<T> {
-    let mut next_sym = *sym;
+    let mut next_sym = sym.clone();
 
     if self.queue.is_empty() {
       self.next_idx += 1;
@@ -187,20 +191,20 @@ impl<T: Symbol + Copy> Encoder<T> {
 
   pub fn produce_next_coded_symbol(&mut self) -> CodedSymbol<T> {
     return self.apply_window(&CodedSymbol::<T> {
-      symbol: T::zero(),
+      symbol: T::zero(self.symbol_size),
       hash:   0,
       count:  0,
     }, Direction::ADD);
   }
 }
 
-impl<T: Symbol + Copy> Decoder<T> {
-  pub fn new() -> Self {
+impl<T: Symbol + Clone> Decoder<T> {
+  pub fn new(symbol_size: usize) -> Self {
     return Decoder::<T> {
       coded:       Vec::<CodedSymbol<T>>::new(),
-      local:       Encoder::<T>::new(),
-      remote:      Encoder::<T>::new(),
-      window:      Encoder::<T>::new(),
+      local:       Encoder::<T>::new(symbol_size),
+      remote:      Encoder::<T>::new(symbol_size),
+      window:      Encoder::<T>::new(symbol_size),
       decodable:   Vec::<i64>::new(),
       num_decoded: 0,
     };
@@ -219,7 +223,7 @@ impl<T: Symbol + Copy> Decoder<T> {
 
   pub fn add_symbol(&mut self, sym: &T) {
     self.window.add_hashed_symbol(&HashedSymbol::<T> {
-      symbol: *sym,
+      symbol: sym.clone(),
       hash:   sym.hash(),
     });
   }
@@ -229,13 +233,15 @@ impl<T: Symbol + Copy> Decoder<T> {
     next_sym         = self.remote.apply_window(&next_sym, Direction::REMOVE);
     next_sym         = self.local .apply_window(&next_sym, Direction::ADD);
 
-    self.coded.push(next_sym);
+    let idx = self.coded.len();
 
     if (    (next_sym.count == 1 || next_sym.count == -1)
          && (next_sym.hash == next_sym.symbol.hash())
        ) || (next_sym.count == 0 && next_sym.hash == 0) {
-      self.decodable.push((self.coded.len() as i64) - 1);
+      self.decodable.push(idx as i64);
     }
+
+    self.coded.push(next_sym);
   }
 
   fn apply_new_symbol(&mut self, sym: &HashedSymbol<T>, direction: Direction) -> RandomMapping {
@@ -266,12 +272,12 @@ impl<T: Symbol + Copy> Decoder<T> {
     //
     while didx < self.decodable.len() {
       let cidx = self.decodable[didx] as usize;
-      let sym  = self.coded[cidx];
+      let sym  = &self.coded[cidx];
 
       match sym.count {
         1 => {
           let new_sym = HashedSymbol::<T> {
-            symbol: T::zero().xor(&sym.symbol),
+            symbol: T::zero(self.window.symbol_size).xor(&sym.symbol),
             hash:   sym.hash
           };
 
@@ -282,7 +288,7 @@ impl<T: Symbol + Copy> Decoder<T> {
 
         -1 => {
           let new_sym = HashedSymbol::<T> {
-            symbol: T::zero().xor(&sym.symbol),
+            symbol: T::zero(self.window.symbol_size).xor(&sym.symbol),
             hash:   sym.hash
           };
 

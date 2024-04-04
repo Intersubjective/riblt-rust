@@ -5,8 +5,8 @@ use std::collections::BTreeSet;
 
 #[test]
 fn encode_and_decode() {
-  let mut enc = Encoder::<TestSymbol>::new();
-  let mut dec = Decoder::<TestSymbol>::new();
+  let mut enc = Encoder::<TestSymbol>::new(0);
+  let mut dec = Decoder::<TestSymbol>::new(0);
 
   let mut local  = BTreeSet::<u64>::new();
   let mut remote = BTreeSet::<u64>::new();
@@ -45,7 +45,7 @@ fn encode_and_decode() {
     if dec.decoded() {
       break;
     }
- }
+  }
 
   for v in dec.remote.symbols.iter() {
     remote.remove(&v.hash);
@@ -67,12 +67,12 @@ fn example() {
   let alice : [TestU64; 10] = [1, 2, 3, 4, 5, 6, 7, 8,  9, 10];
   let bob   : [TestU64; 10] = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-  let mut enc = Encoder::<TestU64>::new();
+  let mut enc = Encoder::<TestU64>::new(0);
   for x in alice {
     enc.add_symbol(&x);
   }
 
-  let mut dec = Decoder::<TestU64>::new();
+  let mut dec = Decoder::<TestU64>::new(0);
   for x in bob {
     dec.add_symbol(&x);
   }
@@ -100,24 +100,26 @@ fn example() {
 
 #[test]
 fn byte_arrays() {
-  let alice : [ByteArray<1, TestHasher>; 3] = [
-    ByteArray::<1, TestHasher>::new([ 1 ]),
-    ByteArray::<1, TestHasher>::new([ 2 ]),
-    ByteArray::<1, TestHasher>::new([ 4 ]),
+  let alice : [ByteArray<TestHasher>; 3] = [
+    ByteArray::<TestHasher>::from_slice(&[ 1 ]),
+    ByteArray::<TestHasher>::from_slice(&[ 2 ]),
+    ByteArray::<TestHasher>::from_slice(&[ 4 ]),
   ];
 
-  let bob : [ByteArray<1, TestHasher>; 3] = [
-    ByteArray::<1, TestHasher>::new([ 1 ]),
-    ByteArray::<1, TestHasher>::new([ 3 ]),
-    ByteArray::<1, TestHasher>::new([ 4 ]),
+  let bob : [ByteArray<TestHasher>; 3] = [
+    ByteArray::<TestHasher>::from_slice(&[ 1 ]),
+    ByteArray::<TestHasher>::from_slice(&[ 3 ]),
+    ByteArray::<TestHasher>::from_slice(&[ 4 ]),
   ];
 
-  let mut enc = Encoder::<ByteArray<1, TestHasher>>::new();
+  //  ByteArray has to know the symbol size value.
+
+  let mut enc = Encoder::<ByteArray<TestHasher>>::new(1);
   for x in alice {
     enc.add_symbol(&x);
   }
 
-  let mut dec = Decoder::<ByteArray<1, TestHasher>>::new();
+  let mut dec = Decoder::<ByteArray<TestHasher>>::new(1);
   for x in bob {
     dec.add_symbol(&x);
   }

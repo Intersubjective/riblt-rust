@@ -12,7 +12,7 @@ pub fn new_test_symbol(x: u64) -> TestSymbol {
 }
 
 impl Symbol for TestSymbol {
-  fn zero() -> TestSymbol {
+  fn zero(_symbol_size: usize) -> TestSymbol {
     return new_test_symbol(0);
   }
 
@@ -31,7 +31,7 @@ impl Symbol for TestSymbol {
 pub type TestU64 = u64;
 
 impl Symbol for TestU64 {
-  fn zero() -> TestU64 {
+  fn zero(_symbol_size: usize) -> TestU64 {
     return 0;
   }
 

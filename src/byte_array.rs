@@ -1,4 +1,8 @@
+//  Dynamic byte array implementation for the Symbol trait.
+//  Required for the cross-language API.
+
 use super::*;
+use std::vec::Vec;
 use std::marker::PhantomData;
 
 pub trait Hasher {
@@ -6,28 +10,47 @@ pub trait Hasher {
   fn hash(&self, bytes: &[u8]) -> u64;
 }
 
-#[derive(Copy, Clone)]
-pub struct ByteArray<const SIZE: usize, H: Hasher + Clone> {
-  pub v           : [u8; SIZE],
+#[derive(Clone)]
+pub struct ByteArray<H: Hasher + Clone> {
+  pub v           : Vec<u8>,
       hasher_type : PhantomData<H>,
 } 
 
-impl<const SIZE: usize, H: Hasher + Clone> ByteArray<SIZE, H> {
-  pub fn new(bytes: [u8; SIZE]) -> Self {
-    return ByteArray::<SIZE, H> {
-      v:           bytes,
-      hasher_type: PhantomData::<H> {},
+impl<H: Hasher + Clone> ByteArray<H> {
+  pub fn new() -> Self {
+    return ByteArray::<H> {
+      v           : Vec::<u8>::new(),
+      hasher_type : PhantomData::<H> {},
     };
+  }
+
+  pub fn from_slice(bytes: &[u8]) -> Self {
+    let mut s = ByteArray::<H>::new();
+    s.v.extend_from_slice(bytes);
+    return s;
   }
 }
 
-impl<const SIZE: usize, H: Hasher + Clone> Symbol for ByteArray<SIZE, H> {
-  fn zero() -> Self {
-    return ByteArray::<SIZE, H>::new(core::array::from_fn::<u8, SIZE, _>(|_| 0));
+impl<H: Hasher + Clone> Symbol for ByteArray<H> {
+  fn zero(symbol_size: usize) -> Self {
+    let mut s = ByteArray::<H>::new();
+    s.v.reserve_exact(symbol_size);
+    for _ in 0..symbol_size {
+      s.v.push(0);
+    }
+    return s;
   }
 
-  fn xor(&self, other: &Self) -> Self where Self: Sized {
-    return ByteArray::<SIZE, H>::new(core::array::from_fn::<u8, SIZE, _>(|i| self.v[i] ^ other.v[i]));
+  fn xor(&self, other: &Self) -> Self {
+    if self.v.len() != other.v.len() {
+      panic!();
+    }
+    let mut s = ByteArray::<H>::new();
+    s.v.reserve_exact(self.v.len());
+    for i in 0..self.v.len() {
+      s.v.push(self.v[i] ^ other.v[i]);
+    }
+    return s;
   }
 
   fn hash(&self) -> u64 {
