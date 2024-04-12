@@ -14,7 +14,7 @@ mod tests;
 
 pub trait Symbol {
   fn zero() -> Self;
-  fn xor(&self, other: &Self) -> Self where Self: Sized;
+  fn xor(&self, other: &Self) -> Self;
   fn hash(&self) -> u64;
 }
 
