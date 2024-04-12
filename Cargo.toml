@@ -2,6 +2,13 @@
 name = "riblt"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Rust port of RIBLT library by yang1996"
+repository = "https://github.com/Intersubjective/riblt-rust"
+readme = "README.md"
+exclude = [
+  "TODO",
+]
 
 [[bench]]
 name = "riblt_bench"
