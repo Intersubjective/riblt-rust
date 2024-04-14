@@ -12,7 +12,7 @@ To use this library, implement a `Symbol` trait, and create `Encoder` or `Decode
 
 ### `Symbol` trait
 - `fn zero() -> Self` - Create a zero symbol.
-- `fn xor(&self, other: &Self) -> Self where Self: Sized` - XOR of this symbol and another symbol.
+- `fn xor(&self, other: &Self) -> Self` - XOR of this symbol and another symbol.
 - `fn hash(&self) -> u64` - Calculate a hash of the symbol.
 
 Example implementation for 64-bit integer symbols:
