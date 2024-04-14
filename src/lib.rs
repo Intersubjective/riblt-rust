@@ -58,24 +58,26 @@ pub struct CodedSymbol<T: Symbol + Copy> {
 }
 
 pub struct Encoder<T: Symbol + Copy> {
-  pub symbols:  Vec<HashedSymbol<T>>,
-      mappings: Vec<RandomMapping>,
-      queue:    Vec<SymbolMapping>,
-      next_idx: i64,
+  pub symbols:   Vec<HashedSymbol<T>>,
+      mappings:  Vec<RandomMapping>,
+      queue:     Vec<SymbolMapping>,
+      next_idx:  i64,
+  pub rng_delta: i64,
 }
 
 pub struct Decoder<T: Symbol + Copy> {
-      coded:       Vec<CodedSymbol<T>>,
-  pub local:       Encoder<T>,
-  pub remote:      Encoder<T>,
-      window:      Encoder<T>,
-      decodable:   Vec<i64>,
-      num_decoded: i64,
+      coded       : Vec<CodedSymbol<T>>,
+  pub local       : Encoder<T>,
+  pub remote      : Encoder<T>,
+      window      : Encoder<T>,
+      decodable   : Vec<i64>,
+      num_decoded : i64,
+  pub rng_delta   : i64,
 }
 
 impl RandomMapping {
-  pub fn next_index(&mut self) -> i64 {
-    let r = self.prng.wrapping_mul(0xda942042e4dd58b5);
+  pub fn next_index(&mut self, delta: i64) -> i64 {
+    let r = self.prng.wrapping_mul(0xda942042e4dd58b5).wrapping_add_signed(delta);
     self.prng = r;
     self.last_idx +=
       (((self.last_idx as f64) + 1.5) *
@@ -96,10 +98,11 @@ impl<T: Symbol + Copy> CodedSymbol<T> {
 impl<T: Symbol + Copy> Encoder<T> {
   pub fn new() -> Self {
     return Encoder::<T> {
-      symbols:  Vec::<HashedSymbol<T>>::new(),
-      mappings: Vec::<RandomMapping>::new(),
-      queue:    Vec::<SymbolMapping>::new(),
-      next_idx: 0,
+      symbols   : Vec::<HashedSymbol<T>>::new(),
+      mappings  : Vec::<RandomMapping>::new(),
+      queue     : Vec::<SymbolMapping>::new(),
+      next_idx  : 0,
+      rng_delta : 0,
     };
   }
 
@@ -159,7 +162,7 @@ impl<T: Symbol + Copy> Encoder<T> {
 
     while self.queue[0].coded_idx == self.next_idx {
       next_sym.apply(&self.symbols[self.queue[0].source_idx as usize], direction);
-      self.queue[0].coded_idx = self.mappings[self.queue[0].source_idx as usize].next_index();
+      self.queue[0].coded_idx = self.mappings[self.queue[0].source_idx as usize].next_index(self.rng_delta);
 
       //  Fix head
       //
@@ -197,12 +200,13 @@ impl<T: Symbol + Copy> Encoder<T> {
 impl<T: Symbol + Copy> Decoder<T> {
   pub fn new() -> Self {
     return Decoder::<T> {
-      coded:       Vec::<CodedSymbol<T>>::new(),
-      local:       Encoder::<T>::new(),
-      remote:      Encoder::<T>::new(),
-      window:      Encoder::<T>::new(),
-      decodable:   Vec::<i64>::new(),
-      num_decoded: 0,
+      coded       : Vec::<CodedSymbol<T>>::new(),
+      local       : Encoder::<T>::new(),
+      remote      : Encoder::<T>::new(),
+      window      : Encoder::<T>::new(),
+      decodable   : Vec::<i64>::new(),
+      num_decoded : 0,
+      rng_delta   : 0,
     };
   }
 
@@ -253,7 +257,7 @@ impl<T: Symbol + Copy> Decoder<T> {
         self.decodable.push(n as i64);
       }
 
-      mapp.next_index();
+      mapp.next_index(self.rng_delta);
     }
 
     return mapp;

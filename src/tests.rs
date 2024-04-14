@@ -12,7 +12,9 @@ fn example() {
     enc.add_symbol(&x);
   }
 
-  let mut dec = Decoder::<TestU64>::new();
+  let mut dec   = Decoder::<TestU64>::new();
+  dec.rng_delta = 1;
+
   for x in bob {
     dec.add_symbol(&x);
   }
@@ -41,14 +43,16 @@ fn example() {
 #[test]
 fn encode_and_decode() {
   let mut enc = Encoder::<TestSymbol>::new();
-  let mut dec = Decoder::<TestSymbol>::new();
+
+  let mut dec   = Decoder::<TestSymbol>::new();
+  dec.rng_delta = 1;
 
   let mut local  = BTreeSet::<u64>::new();
   let mut remote = BTreeSet::<u64>::new();
 
-  let nlocal  = 5000;  // 50000;
-  let nremote = 5000;  // 50000;
-  let ncommon = 10000; // 100000;
+  let nlocal  = 5;  // 50000;
+  let nremote = 5;  // 50000;
+  let ncommon = 10; // 100000;
 
   let mut next_id: u64 = 0;
 

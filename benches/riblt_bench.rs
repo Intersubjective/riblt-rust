@@ -15,7 +15,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
   };
 
   c.bench_function("mapping", |b| b.iter(|| {
-    black_box(mapp.next_index())
+    black_box(mapp.next_index(0))
   }));
 
   let mut enc  = Encoder::<TestSymbol>::new();

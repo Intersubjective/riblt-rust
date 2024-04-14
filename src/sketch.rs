@@ -36,7 +36,7 @@ impl<T: Symbol + Copy> Sketch<T> {
       self.v[idx].symbol  = self.v[idx].symbol.xor(&sym.symbol);
       self.v[idx].count  += 1;
       self.v[idx].hash   ^= sym.hash;
-      mapp.next_index();
+      mapp.next_index(0);
     }
   }
 
@@ -51,7 +51,7 @@ impl<T: Symbol + Copy> Sketch<T> {
       self.v[idx].symbol  = self.v[idx].symbol.xor(&sym.symbol);
       self.v[idx].count  -= 1;
       self.v[idx].hash   ^= sym.hash;
-      mapp.next_index();
+      mapp.next_index(0);
     }
   }
 
