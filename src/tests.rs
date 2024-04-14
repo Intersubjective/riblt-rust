@@ -96,3 +96,103 @@ fn encode_and_decode() {
 
   println!("{} codewords until fully decoded", ncw);
 }
+
+#[test]
+fn reset() {
+  let alice_0 : [TestU64; 10] = [1, 2, 3, 4, 5, 6, 7, 8,  9, 10];
+  let bob_0   : [TestU64; 10] = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  let alice_1 : [TestU64; 10] = [1, 2, 3, 4, 5, 6, 7, 8, 10, 11];
+  let bob_1   : [TestU64; 10] = [1, 2, 4, 5, 6, 7, 8, 9, 10, 11];
+
+  let mut enc = Encoder::<TestU64>::new();
+  for x in alice_0 {
+    enc.add_symbol(&x);
+  }
+
+  let mut dec = Decoder::<TestU64>::new();
+  for x in bob_0 {
+    dec.add_symbol(&x);
+  }
+
+  let mut cost = 0;
+
+  loop {
+    let s = enc.produce_next_coded_symbol();
+    cost += 1;
+    dec.add_coded_symbol(&s);
+    assert!(!dec.try_decode().is_err());
+    if dec.decoded() {
+      break;
+    }
+  }
+
+  enc.reset();
+  dec.reset();
+
+  for x in alice_1 {
+    enc.add_symbol(&x);
+  }
+
+  for x in bob_1 {
+    dec.add_symbol(&x);
+  }
+
+  cost = 0;
+
+  loop {
+    let s = enc.produce_next_coded_symbol();
+    cost += 1;
+    dec.add_coded_symbol(&s);
+    assert!(!dec.try_decode().is_err());
+    if dec.decoded() {
+      break;
+    }
+  }
+
+  //  3 is exclusive to Alice
+  assert_eq!(dec.remote.symbols[0].symbol, 3);
+
+  //  9 is exclusive to Bob
+  assert_eq!(dec.local.symbols[0].symbol, 9);
+
+  assert_eq!(cost, 2);
+} 
+
+#[test]
+fn get_symbols() {
+  let alice : [TestU64; 10] = [1, 2, 3, 4, 5, 6, 7, 8,  9, 10];
+  let bob   : [TestU64; 10] = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+  let mut enc = Encoder::<TestU64>::new();
+  for x in alice {
+    enc.add_symbol(&x);
+  }
+
+  let mut dec = Decoder::<TestU64>::new();
+  for x in bob {
+    dec.add_symbol(&x);
+  }
+
+  let mut cost = 0;
+
+  loop {
+    let s = enc.produce_next_coded_symbol();
+    cost += 1;
+    dec.add_coded_symbol(&s);
+    assert!(!dec.try_decode().is_err());
+    if dec.decoded() {
+      break;
+    }
+  }
+
+  let remote = dec.get_remote_symbols();
+  let local  = dec.get_local_symbols();
+
+  //  2 is exclusive to Alice
+  assert_eq!(remote[0].symbol, 2);
+
+  //  11 is exclusive to Bob
+  assert_eq!(local[0].symbol, 11);
+
+  assert_eq!(cost, 2);
+} 

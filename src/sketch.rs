@@ -5,30 +5,30 @@ use super::*;
 use std::vec::Vec;
 
 pub struct Sketch<T: Symbol + Copy> {
-  pub v: Vec<CodedSymbol<T>>,
+  pub v : Vec<CodedSymbol<T>>,
 }
 
 pub struct SketchDecodeResult<T: Symbol + Copy> {
-  pub fwd:        Vec<HashedSymbol<T>>,
-  pub rev:        Vec<HashedSymbol<T>>,
-  pub is_decoded: bool,
+  pub fwd        : Vec<HashedSymbol<T>>,
+  pub rev        : Vec<HashedSymbol<T>>,
+  pub is_decoded : bool,
 }
 
 impl<T: Symbol + Copy> Sketch<T> {
   pub fn new(size: usize) -> Sketch<T> {
     return Sketch::<T> {
       v: vec![CodedSymbol::<T> {
-        symbol: T::zero(),
-        hash:   0,
-        count:  0,
+        symbol : T::zero(),
+        hash   : 0,
+        count  : 0,
       }; size]
     };
   }
 
   pub fn add_hashed_symbol(&mut self, sym: &HashedSymbol<T>) {
     let mut mapp = RandomMapping {
-      prng:     sym.hash,
-      last_idx: 0,
+      prng     : sym.hash,
+      last_idx : 0,
     };
 
     while (mapp.last_idx as usize) < self.v.len() {
@@ -42,8 +42,8 @@ impl<T: Symbol + Copy> Sketch<T> {
 
   pub fn remove_hashed_symbol(&mut self, sym: &HashedSymbol<T>) {
     let mut mapp = RandomMapping {
-      prng:     sym.hash,
-      last_idx: 0,
+      prng     : sym.hash,
+      last_idx : 0,
     };
 
     while (mapp.last_idx as usize) < self.v.len() {
@@ -57,15 +57,15 @@ impl<T: Symbol + Copy> Sketch<T> {
 
   pub fn add_symbol(&mut self, sym: &T) {
     self.add_hashed_symbol(&HashedSymbol::<T> {
-      symbol: *sym,
-      hash:   sym.hash(),
+      symbol : *sym,
+      hash   : sym.hash(),
     });
   }
 
   pub fn remove_symbol(&mut self, sym: &T) {
     self.remove_hashed_symbol(&HashedSymbol::<T> {
-      symbol: *sym,
-      hash:   sym.hash(),
+      symbol : *sym,
+      hash   : sym.hash(),
     });
   }
 
@@ -88,9 +88,9 @@ impl<T: Symbol + Copy> Sketch<T> {
     }
     return match dec.try_decode() {
       Ok(()) => Ok(SketchDecodeResult::<T> {
-        fwd:        dec.get_remote_symbols(),
-        rev:        dec.get_local_symbols(),
-        is_decoded: dec.decoded(),
+        fwd        : dec.get_remote_symbols(),
+        rev        : dec.get_local_symbols(),
+        is_decoded : dec.decoded(),
       }),
       Err(x) => Err(x),
     }
