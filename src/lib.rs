@@ -75,12 +75,13 @@ pub struct Decoder<T: Symbol + Copy> {
 
 impl RandomMapping {
   pub fn next_index(&mut self) -> i64 {
-    let r = self.prng.wrapping_mul(0xda942042e4dd58b5);
-    self.prng = r;
-    self.last_idx +=
+    let r         = self.prng.wrapping_mul(0xda942042e4dd58b5);
+    self.prng     = r;
+    self.last_idx = self.last_idx.wrapping_add(
       (((self.last_idx as f64) + 1.5) *
        (((1i64 << 32) as f64) / f64::sqrt((r as f64) + 1.0) - 1.0)
-      ).ceil() as i64;
+      ).ceil() as i64
+    );
     return self.last_idx;
   }
 }
@@ -236,8 +237,8 @@ impl<T: Symbol + Copy> Decoder<T> {
 
   fn apply_new_symbol(&mut self, sym: &HashedSymbol<T>, direction: Direction) -> RandomMapping {
     let mut mapp = RandomMapping {
-      prng:     sym.hash,
-      last_idx: 0,
+      prng     : sym.hash,
+      last_idx : 0,
     };
 
     while mapp.last_idx < (self.coded.len() as i64) {

@@ -195,4 +195,16 @@ fn get_symbols() {
   assert_eq!(local[0].symbol, 11);
 
   assert_eq!(cost, 2);
-} 
+}
+
+#[test]
+fn mapping() {
+  let mut m = RandomMapping {
+    prng     : 1234567891,
+    last_idx : 0,
+  };
+
+  for _ in 0..1000 {
+    m.next_index();
+  }
+}
