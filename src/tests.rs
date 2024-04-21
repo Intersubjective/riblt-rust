@@ -208,6 +208,6 @@ fn print_mapping() {
   let mut f = File::create("mapping.txt").unwrap();
 
   for _ in 0..20000 {
-    write!(&mut f, "{}\n", m.next_index()).unwrap();
+    write!(&mut f, "{}", m.next_index()).unwrap();
   }
 }
