@@ -1,13 +1,16 @@
 use super::*;
+use std::{fs::*, io::Write};
 
 #[test]
-fn mapping() {
+fn print_mapping() {
   let mut m = RandomMapping {
     prng     : 1234567891,
     last_idx : 0,
   };
 
-  for _ in 0..1000 {
-    m.next_index();
+  let mut f = File::create("mapping.txt").unwrap();
+
+  for _ in 0..20000 {
+    writeln!(&mut f, "{}", m.next_index()).unwrap();
   }
 }

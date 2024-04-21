@@ -8,6 +8,7 @@ repository = "https://github.com/Intersubjective/riblt-rust"
 readme = "README.md"
 exclude = [
   "TODO",
+  "mapping_ref.txt",
 ]
 
 [[bench]]
