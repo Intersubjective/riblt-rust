@@ -29,5 +29,5 @@ jobs:
     - uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: mapping.txt
+        name: mapping-${{ matrix.os }}.txt
         path: mapping.txt
