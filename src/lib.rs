@@ -34,14 +34,14 @@ pub enum Error {
 
 #[derive(Clone, Copy)]
 pub struct SymbolMapping {
-  source_idx : i64,
-  coded_idx  : i64,
+  source_idx : u64,
+  coded_idx  : u64,
 }
 
 #[derive(Clone, Copy)]
 pub struct RandomMapping {
   pub prng     : u64,
-  pub last_idx : i64,
+  pub last_idx : u64,
 }
 
 #[derive(Clone, Copy)]
@@ -61,7 +61,7 @@ pub struct Encoder<T: Symbol + Copy> {
   pub symbols  : Vec<HashedSymbol<T>>,
       mappings : Vec<RandomMapping>,
       queue    : Vec<SymbolMapping>,
-      next_idx : i64,
+      next_idx : u64,
 }
 
 pub struct Decoder<T: Symbol + Copy> {
@@ -70,17 +70,17 @@ pub struct Decoder<T: Symbol + Copy> {
   pub remote      : Encoder<T>,
       window      : Encoder<T>,
       decodable   : Vec<i64>,
-      num_decoded : i64,
+      num_decoded : u64,
 }
 
 impl RandomMapping {
-  pub fn next_index(&mut self) -> i64 {
+  pub fn next_index(&mut self) -> u64 {
     let r         = self.prng.wrapping_mul(0xda942042e4dd58b5);
     self.prng     = r;
     self.last_idx = self.last_idx.wrapping_add(
       (((self.last_idx as f64) + 1.5) *
        (((1i64 << 32) as f64) / f64::sqrt((r as f64) + 1.0) - 1.0)
-      ).ceil() as i64
+      ).ceil() as u64
     );
     return self.last_idx;
   }
@@ -117,7 +117,7 @@ impl<T: Symbol + Copy> Encoder<T> {
     self.mappings.push(*mapp);
 
     self.queue.push(SymbolMapping {
-      source_idx : (self.symbols.len() as i64) - 1,
+      source_idx : (self.symbols.len() as u64) - 1,
       coded_idx  : mapp.last_idx,
     });
 
@@ -241,7 +241,7 @@ impl<T: Symbol + Copy> Decoder<T> {
       last_idx : 0,
     };
 
-    while mapp.last_idx < (self.coded.len() as i64) {
+    while mapp.last_idx < (self.coded.len() as u64) {
       let n = mapp.last_idx as usize;
       self.coded[n].apply(&sym, direction);
 
@@ -306,7 +306,7 @@ impl<T: Symbol + Copy> Decoder<T> {
   }
 
   pub fn decoded(&self) -> bool {
-    return self.num_decoded == (self.coded.len() as i64);
+    return self.num_decoded == (self.coded.len() as u64);
   }
 
   pub fn get_remote_symbols(&self) -> Vec<HashedSymbol<T>> {

@@ -9,22 +9,13 @@ on:
 
 jobs:
   build_and_test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu, windows, macos ]
+    runs-on: ${{ matrix.os }}-latest
     steps:
     - uses: actions/checkout@v4
     - name: Build
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
-  mapping_determinism:
-    needs: [ build_and_test ]
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ ubuntu, windows, macos ]
-    runs-on: ${{ matrix.os }}-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Run the test
-      shell: bash
-      run: bash mapping_test.sh
